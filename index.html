@@ -1,0 +1,372 @@
+<meta charset="utf-8"/>
+
+<title>mountain loops</title>
+
+<script type="text/javascript">
+
+  ENCYCLOPEDIA_OF_MOUNTAINS = [
+    {
+      name: 'Lambert',
+      survey: {}
+    },
+    {
+      name: 'Lava',
+      survey: {
+        gradient_steps: 100,
+        gradient_repeat: true,
+        gradient_animate: true,
+        gradient_background: false,
+        gradient_colors: [
+          [0, 0, 0, 0],
+          [.1, 255, 0, 0],
+          [.2, 255, 255, 0],
+          [.5, 255, 0, 0],
+          [1, 0, 0, 0]
+        ]
+      },
+    },
+    {
+      name: 'RGB',
+      survey: {
+        gradient_steps: 50,
+        gradient_repeat: true,
+        gradient_animate: true,
+        gradient_colors: [
+          [.1, 255, 0, 0],
+          [.25, 0, 255, 0],
+          [.5, 0, 0, 255],
+          [.75, 0, 255, 0],
+          [1, 255, 0, 0]
+        ]
+      }
+    },
+    {
+      name: 'Sliced Like Bacon',
+      survey: {
+        gradient_steps: 10,
+        gradient_repeat: true,
+        gradient_colors: [
+          [0, 150, 0, 0],
+          [.6, 200, 100, 100]
+        ]
+      }
+    },
+    {
+      name: 'Snowy',
+      survey: {
+        gradient_steps: 70,
+        gradient_repeat: false,
+        gradient_colors: [
+          [0, 0, 50, 0],
+          [.1, 0, 60, 0],
+          [.2, 70, 70, 70],
+          [.5, 120, 120, 120],
+          [.6, 255, 255, 255],
+          [.7, 255, 255, 255],
+          [1, 255, 255, 255]
+        ]
+      }
+    },
+    {
+      name: 'Waterfall',
+      survey: {
+        gradient_steps: 10,
+        gradient_repeat: true,
+        gradient_animate: true,
+        gradient_background: false,
+        gradient_colors: [
+          [0, 0, 100, 255],
+          [.5, 0, 0, 255],
+          [1, 0, 0, 100]
+        ]
+      }
+    },
+    {
+      name: '2-Bit',
+      survey: {
+        gradient_steps: 2,
+        gradient_animate: true
+      }
+    },
+    {
+      name: 'Cross-section',
+      survey: {
+        gradient_animate: true,
+        gradient_background: false,
+        gradient_colors: [
+          [.48, 0, 0, 0],
+          [.5, 100, 100, 100],
+          [.52, 150, 150, 150]
+        ]
+      }
+    },
+    {
+      name: 'Cylon',
+      survey: {
+        gradient_steps: 60,
+        gradient_repeat: true,
+        gradient_animate: true,
+        gradient_background: false,
+        gradient_colors: [
+          [0, 0, 0, 0],
+          [.48, 40, 0, 0],
+          [.5, 255, 0, 0, 0],
+          [.52, 40, 0, 0],
+          [1, 0, 0, 0]
+        ]
+      }
+    }
+  ]
+
+</script>
+
+<div id="mountain"></div>
+
+<style type="text/css">
+  body { background-color: black; color: white; margin: 0; padding: 0; }
+  h1 { text-align: center; font-family: monospace;}
+  #mountain { position: absolute; width:100%; height:60%; top:40%; }
+</style>
+
+<script type="text/javascript">
+  state = {}
+
+  function mountain(element, options) {
+    options = options || {};
+    var ox = options.ox || 3;
+    var oy = options.oy || 6;
+    var mw = options.mw || ox * 2;
+    var mh = options.mh || ox * 2;
+    var chance = options.chance || .3;
+    var index = options.index || 0;
+    var gradient_steps = options.gradient_steps || 100;
+    var gradient_colors = (
+      options.gradient_colors ||
+        [[0, 0, 0, 0], [1, 255, 255, 255]]);
+    if ('gradient_animate' in options)
+      var gradient_animate = options.gradient_animate;
+    else
+      var gradient_animate = false;
+    if ('gradient_background' in options)
+      var gradient_background = options.gradient_background;
+    else
+      var gradient_background = true;
+    if ('gradient_repeat' in options)
+      var gradient_repeat = options.gradient_repeat;
+    else
+      var gradient_repeat = false;
+
+    function bounds(element) {
+      var top = 0, left = 0, e = element;
+      do {
+        top += element.offsetTop || 0;
+        left += element.offsetLeft || 0;
+        element = element.offsetParent;
+      } while (element);
+      return {
+        'left': left,
+        'top': top,
+        'width': e.clientWidth,
+        'height': e.clientHeight
+      };
+    }
+
+    function choice(sequence) {
+      return sequence[Math.round((sequence.length - 1) * Math.random())];
+    }
+
+    function random_range(min, max) {
+      return Math.round((max - min) * Math.random() + min);
+    }
+
+    function gradient(resolution, stops) {
+      var colors = [];
+      for (var i = 0; i < stops.length - 1; i++) {
+        var r = resolution * stops[i + 1][0] - resolution * stops[i][0];
+        for (var n = 0; n < r + 1; n++) {
+          var c = [];
+          for (var m = 1; m < 4; m++) {
+            c.push(parseInt((stops[i + 1][m] - stops[i][m]) * (n / r) + stops[i][m]));
+          }
+          colors.push('rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')');
+        }
+      }
+      return colors;
+    }
+
+    function raise(step) {
+      var e, l, t, w, h, d, s = document.createElement('div');
+      s.style.top = (parseInt(step.style.top) || 0) - oy + 'px';
+
+      function mke(l, t, w, h) {
+        e = document.createElement('div');
+        e.style.left = l + 'px';
+        e.style.top = t + 'px';
+        e.style.width = w + 'px';
+        e.style.height = h + 'px';
+        e.style.zIndex = index;
+        s.appendChild(e);
+      }
+
+      for (var i = 0; i < step.childNodes.length; i++) {
+        l = parseInt(step.childNodes[i].style.left) + ox;
+        t = parseInt(step.childNodes[i].style.top) + ox;
+        w = parseInt(step.childNodes[i].style.width) - (ox * 2);
+        h = parseInt(step.childNodes[i].style.height) - (ox * 2);
+        if (w < mw || h < mh) continue;
+        if (Math.random() < chance) {
+          if (w / h > 1) {
+            d = true;
+          } else {
+            d = false;
+          }
+          //d = choice([true, false]);
+          if (d) {
+            var w2 = choice([
+              random_range(0, Math.round(w * .33)),
+              random_range(Math.round(w * .66), w)]);
+            mke(l, t, w2, h);
+            mke(l + w2, t, w - w2, h);
+          } else {
+            var h2 = choice([
+              random_range(0, Math.round(h * .33)),
+              random_range(Math.round(h * .66), h)]);
+            mke(l, t, w, h2);
+            mke(l, t + h2, w, h - h2);
+          }
+        } else {
+          mke(l, t, w, h);
+        }
+      }
+      chance = chance * 0.95;
+      index++;
+      if (e) {
+        step.parentNode.appendChild(s);
+        return s;
+      }
+    }
+
+    // main
+
+    var b = bounds(element);
+    var m = document.createElement('div');
+    m.className = 'mountain';
+    state.root = m;
+    document.body.appendChild(m);
+    m.style.left = b.left + 'px';
+    m.style.top = b.top + 'px';
+    m.style.width = b.width + 'px';
+    m.style.height = b.height + 'px';
+
+    var s = document.createElement('div');
+    var e = document.createElement('div');
+    e.style.left = 0 + 'px';
+    e.style.top = 0 + 'px';
+    e.style.width = b.width + 'px';
+    e.style.height = b.height + 'px';
+    s.appendChild(e);
+    m.appendChild(s);
+
+    var gradient_colors_shade = [];
+    for (var i = 0; i < gradient_colors.length; i++) {
+      var clr = gradient_colors[i];
+      var r = clr[1] - 40, g = clr[2] - 40, b = clr[3] - 40;
+      if (r < 0) r = 0; if (g < 0) g = 0; if (b < 0) b = 0;
+      gradient_colors_shade.push([clr[0], r, g, b]);
+    }
+    var g1 = gradient(gradient_steps, gradient_colors);
+    var g2 = gradient(gradient_steps, gradient_colors_shade);
+
+    var css = [
+      '.mountain {position:absolute}',
+      '.mountain div {position:absolute}',
+      '.mountain div div {position:absolute}'
+    ];
+    for (var i = 0; i < gradient_steps; i++) {
+      css.push(
+        '.mountain .c' + i +
+          ' div{background-color:' + g1[i] + ';' +
+          'border-right:3px solid ' + g2[i] + '}');
+    }
+
+    var style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.appendChild(document.createTextNode(css.join('\n')));
+
+    document.body.appendChild(style);
+    state.style = style;
+
+    var index = 0;
+    function _raise() {
+      if (s) {
+        s = raise(s);
+        if (s) {
+          if (!gradient_animate) {
+            if (gradient_repeat)
+              s.className = 'c' + (index % gradient_steps);
+            else
+              s.className = 'c' + (
+                index < gradient_steps ? index : gradient_steps - 1);
+            index++;
+          }
+          setTimeout(_raise, 30);
+        }
+      }
+    };
+    _raise();
+
+    if (gradient_animate) {
+      var index = 0;
+      state.interval = setInterval(function() {
+        for (var i = 0; i < m.childNodes.length; i++) {
+          m.childNodes[i].className = 'c' + ((i + index) % gradient_steps);
+        }
+        if (gradient_background) {
+          document.body.style.backgroundColor = g2[(index % gradient_steps)];
+        }
+        index++;
+      }, 30);
+    }
+  }
+
+  function demountain() {
+    if (state.root) {
+      state.root.parentElement.removeChild(state.root);
+      delete state.root;
+    }
+    if (state.style) {
+      state.style.parentElement.removeChild(state.style);
+      delete state.style;
+    }
+    if (state.interval) {
+      clearInterval(state.interval);
+      delete state.interval;
+    }
+    document.body.style.backgroundColor = 'black';
+  }
+</script>
+
+<script type="text/javascript">
+  function museum() {
+    var index = -1;
+
+    function walk() {
+      demountain();
+
+      index++;
+      if (index == ENCYCLOPEDIA_OF_MOUNTAINS.length - 1)
+        index = 0;
+      mnt = ENCYCLOPEDIA_OF_MOUNTAINS[index];
+      document.title = mnt.name + ' Mountain';
+
+      mountain(document.getElementById('mountain'), mnt.survey);
+    }
+
+    walk();
+    setInterval(walk, 10000);
+  }
+</script>
+
+<script type="text/javascript">
+  museum();
+</script>
